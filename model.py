@@ -12,7 +12,7 @@ BUFFER_SIZE = int(1e5)       # replay buffer size
 BATCH_SIZE = 256             # minibatch size
 GAMMA = 0.9                  # discount factor
 TAU = 1e-3                   # for soft update of target parameters
-LR_ACTOR = 1e-3              # learning rate of the actor 
+LR_ACTOR = 1e-3              # learning rate of the actor
 LR_CRITIC = 1e-3             # learning rate of the critic
 WEIGHT_DECAY = 1e-6          # L2 weight decay
 SIGMA = 0.1                  # volatility parameter
@@ -78,7 +78,6 @@ class Actor(nn.Module):
         x = F.relu(self.fc2(x))
         return torch.tanh(self.fc3(x))
 
-
 class Critic(nn.Module):
     """Critic (Value) Model."""
 
@@ -98,7 +97,7 @@ class Critic(nn.Module):
         self.fc2 = nn.Linear(fcs1_units+action_size, fc2_units)
         self.fc3 = nn.Linear(fc2_units, 1)
         self.reset_parameters()
-        
+
     def reset_parameters(self):
         self.fcs1.weight.data.uniform_(*hidden_init(self.fcs1))
         self.fc2.weight.data.uniform_(*hidden_init(self.fc2))
@@ -113,42 +112,42 @@ class Critic(nn.Module):
 
 class Agent():
     """Interacts with and learns from the environment."""
-    
-    def __init__(self, state_size, action_size, random_seed):
+
+    def __init__(self, state_size, action_size, seed):
         """Initialize an Agent object.
-        
+
         Params
         ======
             state_size (int): dimension of each state
             action_size (int): dimension of each action
-            random_seed (int): random seed
+            seed (int): random seed
         """
         self.state_size = state_size
         self.action_size = action_size
-        self.seed = random.seed(random_seed)
+        self.seed = random.seed(seed)
 
         # Actor Network (w/ Target Network)
-        self.actor_local = Actor(state_size, action_size, random_seed).to(device)
-        self.actor_target = Actor(state_size, action_size, random_seed).to(device)
+        self.actor_local = Actor(state_size, action_size, seed).to(device)
+        self.actor_target = Actor(state_size, action_size, seed).to(device)
         self.hard_copy(self.actor_target, self.actor_local) ## !
         self.actor_optimizer = optim.Adam(self.actor_local.parameters(), lr=LR_ACTOR)
 
         # Critic Network (w/ Target Network)
-        self.critic_local = Critic(state_size, action_size, random_seed).to(device)
-        self.critic_target = Critic(state_size, action_size, random_seed).to(device)
+        self.critic_local = Critic(state_size, action_size, seed).to(device)
+        self.critic_target = Critic(state_size, action_size, seed).to(device)
         self.hard_copy(self.critic_target, self.critic_local) ## !
         self.critic_optimizer = optim.Adam(self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
 
         # Noise process
-        self.noise = OUNoise(action_size, random_seed)
+        self.noise = OUNoise(action_size, seed)
 
         # Replay memory
-        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, random_seed)
-        
+        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed)
+
     def hard_copy(self, target, source):
         for target_param, param in zip(target.parameters(), source.parameters()):
             target_param.data.copy_(param.data)
-    
+
     def step(self, state, action, reward, next_state, done):
         """Save experience in replay memory, and use random sample from buffer to learn."""
         # Save experience / reward
@@ -182,7 +181,7 @@ class Agent():
 
         Params
         ======
-            experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) tuples 
+            experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) tuples
             gamma (float): discount factor
         """
         states, actions, rewards, next_states, dones = experiences
@@ -212,7 +211,7 @@ class Agent():
 
         # ----------------------- update target networks ----------------------- #
         self.soft_update(self.critic_local, self.critic_target, TAU)
-        self.soft_update(self.actor_local, self.actor_target, TAU)                     
+        self.soft_update(self.actor_local, self.actor_target, TAU)
 
     def soft_update(self, local_model, target_model, tau):
         """Soft update model parameters.
@@ -222,7 +221,7 @@ class Agent():
         ======
             local_model: PyTorch model (weights will be copied from)
             target_model: PyTorch model (weights will be copied to)
-            tau (float): interpolation parameter 
+            tau (float): interpolation parameter
         """
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
@@ -242,12 +241,12 @@ class ReplayBuffer:
         self.batch_size = batch_size
         self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
         self.seed = random.seed(seed)
-    
+
     def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
         e = self.experience(state, action, reward, next_state, done)
         self.memory.append(e)
-    
+
     def sample(self):
         """Randomly sample a batch of experiences from memory."""
         experiences = random.sample(self.memory, k=self.batch_size)
